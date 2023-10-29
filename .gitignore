@@ -1,0 +1,3 @@
+# Project exclude paths
+/heima-leadnews-common/target/
+.idea

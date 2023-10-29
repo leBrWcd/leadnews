@@ -9,7 +9,12 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>heima-leadnews-service</artifactId>
+    <artifactId>leadnews-service</artifactId>
+    <packaging>pom</packaging>
+    <modules>
+        <module>leadnew-users</module>
+        <module>leadnew-article</module>
+    </modules>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
