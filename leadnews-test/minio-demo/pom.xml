@@ -17,6 +17,13 @@
     </properties>
 
     <dependencies>
+
+        <dependency>
+            <groupId>com.leadnews</groupId>
+            <artifactId>file-starter</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
         <!--minio-->
         <dependency>
             <groupId>io.minio</groupId>

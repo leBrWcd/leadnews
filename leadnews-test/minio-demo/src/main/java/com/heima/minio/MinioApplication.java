@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Description TODO
+ * Description MinIO测试类启动
  *
  * @author lebrwcd
  * @version 1.0
