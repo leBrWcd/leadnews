@@ -4,19 +4,21 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.heima</groupId>
-    <artifactId>heima-leadnews</artifactId>
+    <groupId>com.leadnews</groupId>
+    <artifactId>leadnews</artifactId>
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
+
     <!--子模块-->
     <modules>
-        <module>heima-leadnews-common</module>
-        <module>heima-leadnews-utils</module>
-        <module>heima-leadnews-model</module>
-        <module>heima-leadnews-feign-api</module>
-        <module>heima-leadnews-service</module>
-        <module>heima-leadnews-gateway</module>
-        <module>heima-leadnews-test</module>
+        <module>leadnews-common</module>
+        <module>leadnews-utils</module>
+        <module>leadnews-model</module>
+        <module>leadnews-feign-api</module>
+        <module>leadnews-service</module>
+        <module>leadnews-gateway</module>
+        <module>leadnews-test</module>
+        <module>leadnews-basic</module>
     </modules>
 
     <!-- 继承Spring boot工程 -->
@@ -87,23 +89,23 @@
         <dependencies>
             <!--内部依赖工程-->
             <dependency>
-                <artifactId>heima-leadnews-feign-api</artifactId>
-                <groupId>com.heima</groupId>
+                <artifactId>leadnews-feign-api</artifactId>
+                <groupId>com.leadnews</groupId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <artifactId>heima-leadnews-common</artifactId>
-                <groupId>com.heima</groupId>
+                <artifactId>leadnews-common</artifactId>
+                <groupId>com.leadnews</groupId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <artifactId>heima-leadnews-model</artifactId>
-                <groupId>com.heima</groupId>
+                <artifactId>leadnews-model</artifactId>
+                <groupId>com.leadnews</groupId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <artifactId>heima-leadnews-utils</artifactId>
-                <groupId>com.heima</groupId>
+                <artifactId>leadnews-utils</artifactId>
+                <groupId>com.leadnews</groupId>
                 <version>${project.version}</version>
             </dependency>
             <!-- Spring boot 特殊处理包 -->
