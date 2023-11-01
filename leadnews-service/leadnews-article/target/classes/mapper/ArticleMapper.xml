@@ -29,6 +29,7 @@
     <result column="static_url" property="staticUrl"/>
   </resultMap>
 
+  <!-- 查询文章基本信息和配置，需要查询非删除、非下架的文章 -->
   <select id="loadArticleList" resultMap="resultMap" >
     select aar.*
     from ap_article aar

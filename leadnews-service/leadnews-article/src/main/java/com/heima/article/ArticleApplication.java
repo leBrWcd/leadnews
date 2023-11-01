@@ -8,7 +8,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication
 @EnableDiscoveryClient
-@MapperScan("com.heima.com.heima.article.mapper")
+@MapperScan("com.heima.article.mapper")
 public class ArticleApplication {
 
     public static void main(String[] args) {

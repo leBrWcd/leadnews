@@ -1,4 +1,4 @@
-package com.heima.article.v1;
+package com.heima.article.controller.v1;
 
 import com.heima.article.service.ArticleService;
 import com.heima.common.constants.ArticleConstants;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/article/")
-public class ArticleController {
+public class ApArticleController {
 
     @Autowired
     private ArticleService articleService;
