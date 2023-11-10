@@ -20,9 +20,13 @@ import reactor.core.publisher.Mono;
 public class AuthorizeFilter implements Ordered, GlobalFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+
+        log.info("WeMedia 过滤器...");
+
         //1.获取request和response对象
         ServerHttpRequest request = exchange.getRequest();
         ServerHttpResponse response = exchange.getResponse();
+
 
         //2.判断是否是登录
         if(request.getURI().getPath().contains("/login")){
@@ -48,6 +52,13 @@ public class AuthorizeFilter implements Ordered, GlobalFilter {
                 response.setStatusCode(HttpStatus.UNAUTHORIZED);
                 return response.setComplete();
             }
+            // 解析 claimsBody
+            Object userId = claimsBody.get("id");
+            ServerHttpRequest serverHttpRequest = request.mutate().headers( header -> {
+                header.add("userId",userId + "");
+            }).build();
+
+            exchange.mutate().request(serverHttpRequest);
 
         } catch (Exception e) {
             e.printStackTrace();

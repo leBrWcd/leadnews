@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Import;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -30,6 +31,7 @@ import java.util.Date;
 @Slf4j
 @EnableConfigurationProperties(MinioFileProperties.class)
 @Import(MinioConfig.class)
+@Component
 public class FileStorageServiceImpl implements FileStorageService {
 
     @Autowired
@@ -67,6 +69,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public String uploadImgFile(String prefix, String filename,InputStream inputStream) {
         String filePath = builderFilePath(prefix, filename);
+        log.info("FileStorage 上传文件路径：{}",filePath);
         try {
             PutObjectArgs putObjectArgs = PutObjectArgs.builder()
                     .object(filePath)
@@ -80,7 +83,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             urlPath.append(filePath);
             return urlPath.toString();
         }catch (Exception ex){
-            log.error("minio put file error.",ex);
+            log.error("minio put file error.",ex.getCause());
             throw new RuntimeException("上传文件失败");
         }
     }
