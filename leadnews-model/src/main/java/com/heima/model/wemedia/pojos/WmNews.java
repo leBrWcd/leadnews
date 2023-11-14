@@ -1,9 +1,6 @@
 package com.heima.model.wemedia.pojos;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import org.apache.ibatis.type.Alias;
 
@@ -116,6 +113,13 @@ public class WmNews implements Serializable {
 
     @TableField("enable")
     private Short enable;
+
+    /**
+     * 逻辑删除
+     */
+    @TableLogic(delval = "1",value = "0")
+    @TableField("del_flag")
+    private Short delFlag;
     
      //状态枚举类
     @Alias("WmNewsStatus")
