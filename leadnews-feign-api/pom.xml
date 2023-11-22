@@ -17,6 +17,12 @@
     </properties>
 
     <dependencies>
+        <!-- feign远程调用 -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.leadnews</groupId>
             <artifactId>leadnews-model</artifactId>

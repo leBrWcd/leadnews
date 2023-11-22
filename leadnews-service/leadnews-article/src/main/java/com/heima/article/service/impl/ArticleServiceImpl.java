@@ -1,12 +1,22 @@
 package com.heima.article.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.heima.article.mapper.ApArticleConfigMapper;
+import com.heima.article.mapper.ArticleContentMapper;
 import com.heima.article.mapper.ArticleMapper;
 import com.heima.article.service.ArticleService;
 import com.heima.common.constants.ArticleConstants;
+import com.heima.model.article.dto.ArticleDto;
 import com.heima.model.article.dto.ArticleHomeDto;
 import com.heima.model.article.pojos.ApArticle;
+import com.heima.model.article.pojos.ApArticleConfig;
+import com.heima.model.article.pojos.ApArticleContent;
+import com.heima.model.common.dtos.ResponseResult;
+import com.heima.model.common.enums.AppHttpCodeEnum;
 import org.apache.commons.lang.StringUtils;
+import org.checkerframework.checker.units.qual.A;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +38,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, ApArticle> im
 
     @Autowired
     private ArticleMapper articleMapper;
+
+    @Autowired
+    private ApArticleConfigMapper apArticleConfigMapper;
+
+    @Autowired
+    private ArticleContentMapper articleContentMapper;
 
     /**
      *
@@ -65,5 +81,47 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, ApArticle> im
             return apArticles;
         }
         return null;
+    }
+
+
+    @Override
+    public ResponseResult saveArticle(ArticleDto dto) {
+        // 0.校验参数
+        if (dto == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
+        }
+        // 不为空，属性拷贝，方便后续操作
+        ApArticle apArticle = new ApArticle();
+        BeanUtils.copyProperties(dto,apArticle);
+        // 1.前端是否传递文章id
+        if (dto.getId() == null) {
+            // 3.如果不存在，则为保存
+            // 3.1 保存文章、文章配置、文章内容
+            save(apArticle);
+            ApArticleConfig apArticleConfig = new ApArticleConfig(apArticle.getId());
+            apArticleConfigMapper.insert(apArticleConfig);
+
+            ApArticleContent apArticleContent = new ApArticleContent();
+            apArticleContent.setArticleId(apArticle.getId());
+            apArticleContent.setContent(dto.getContent());
+            articleContentMapper.insert(apArticleContent);
+        }
+        // 2.如果存在，则为修改，update
+        updateById(apArticle);
+        // 2.1 修改文章内容
+        // 根据id查询文章内容
+        ApArticleContent apArticleContent = articleContentMapper.selectOne(
+                Wrappers.<ApArticleContent>lambdaQuery().eq(ApArticleContent::getArticleId, dto.getId()));
+        if (apArticleContent != null) {
+            apArticleContent.setContent(dto.getContent());
+            articleContentMapper.updateById(apArticleContent);
+        } else {
+            apArticleContent = new ApArticleContent();
+            apArticleContent.setArticleId(dto.getId());
+            apArticleContent.setContent(dto.getContent());
+            articleContentMapper.insert(apArticleContent);
+        }
+
+        return ResponseResult.okResult(apArticle.getId());
     }
 }

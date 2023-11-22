@@ -22,6 +22,18 @@ import java.io.Serializable;
 @TableName("ap_article_config")
 public class ApArticleConfig implements Serializable {
 
+    /**
+     * 保存文章或者修改文章需要用到的构造方法,传入文章id，其他属性默认
+     * @param articleId
+     */
+    public ApArticleConfig(Long articleId){
+        this.articleId = articleId;
+        this.isComment = true;
+        this.isForward = true;
+        this.isDelete = false;
+        this.isDown = false;
+    }
+
     @TableId(value = "id",type = IdType.ID_WORKER)
     private Long id;
 
