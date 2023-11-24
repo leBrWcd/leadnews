@@ -1,28 +1,37 @@
 package com.heima.wemedia.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.heima.apis.article.IArticleClient;
 import com.heima.common.aliyun.GreenImageScan;
 import com.heima.common.aliyun.GreenTextScan;
+import com.heima.common.tess4j.Tess4jClient;
 import com.heima.file.service.FileStorageService;
 import com.heima.model.article.dto.ArticleDto;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.wemedia.pojos.WmChannel;
 import com.heima.model.wemedia.pojos.WmNews;
+import com.heima.model.wemedia.pojos.WmSensitive;
 import com.heima.model.wemedia.pojos.WmUser;
+import com.heima.utils.common.SensitiveWordUtil;
 import com.heima.wemedia.mapper.WmChannelMapper;
 import com.heima.wemedia.mapper.WmNewsMapper;
+import com.heima.wemedia.mapper.WmSensitiveMapper;
 import com.heima.wemedia.mapper.WmUserMapper;
 import com.heima.wemedia.service.WmAutoScanNewsService;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.units.qual.A;
+import net.sourceforge.tess4j.TesseractException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -53,8 +62,9 @@ public class WmAutoScanNewsServiceImpl implements WmAutoScanNewsService {
     @Autowired
     private WmNewsMapper wmNewsMapper;
 
+    @Async  // 异步调用
     @Override
-    public void autoScanNews(Integer id) {
+    public void autoScanNews(Integer id) throws IOException {
 
         // 1、查询自媒体文章
         WmNews wmNews = wmNewsMapper.selectById(id);
@@ -71,6 +81,12 @@ public class WmAutoScanNewsServiceImpl implements WmAutoScanNewsService {
         if (wmNews.getStatus().equals(WmNews.Status.SUBMIT.getCode())) {
             // 2、审核文本内容
             String text = (String) textAndImages.get("text");
+            // 新增需求：自管理的敏感词汇过滤
+            boolean isSensitiveScan = handleSensitiveScan(text,wmNews);
+            log.info("---------isSensitiveScan:{}",isSensitiveScan);
+            if (!isSensitiveScan) {
+                return;
+            }
             boolean isTextScan = handleTextScan(text,wmNews);
             log.info("---------isTextScan:{}",isTextScan);
             if (!isTextScan){
@@ -85,6 +101,7 @@ public class WmAutoScanNewsServiceImpl implements WmAutoScanNewsService {
             }
             // 4.保存相关文章
             ResponseResult responseResult = saveAppArticle(wmNews);
+            log.info("=========response code : {}",responseResult.getCode());
             log.info("=========errorMsg========{}",responseResult.getErrorMessage());
             if(!responseResult.getCode().equals(200)){
                 throw new RuntimeException("WmNewsAutoScanServiceImpl-文章审核，保存app端相关文章数据失败");
@@ -96,6 +113,33 @@ public class WmAutoScanNewsServiceImpl implements WmAutoScanNewsService {
         }
 
 
+    }
+
+    @Autowired
+    private WmSensitiveMapper wmSensitiveMapper;
+
+    /**
+     * 自管理的敏感词汇过滤
+     * @param text
+     * @param wmNews
+     * @return
+     */
+    private boolean handleSensitiveScan(String text, WmNews wmNews) {
+
+        boolean flag = true;
+        // 查询敏感词汇列表
+        List<String> sensitiveList = wmSensitiveMapper.selectList(Wrappers.<WmSensitive>lambdaQuery().select(WmSensitive::getSensitives))
+                .stream().map(WmSensitive::getSensitives).collect(Collectors.toList());
+        // 初始化敏感词汇字典
+        SensitiveWordUtil.initMap(sensitiveList);
+        // 匹配是否存在敏感词汇
+        Map<String, Integer> map = SensitiveWordUtil.matchWords(text);
+        if (map.size() > 0) {
+            // 有敏感词汇
+            updateNewsStatus(wmNews,WmNews.Status.FAIL.getCode(),"当前文本存在敏感内容:" + map);
+            flag = false;
+        }
+        return flag;
     }
 
     @Autowired
@@ -138,7 +182,9 @@ public class WmAutoScanNewsServiceImpl implements WmAutoScanNewsService {
         articleDto.setCreatedTime(new Date());
 
         log.info("=====articleClient:{}",articleClient);
+        // 自媒体微服务远程调用App端文章微服务保存文章
         ResponseResult responseResult = articleClient.saveArticle(articleDto);
+        log.info("WmAutoScanNewsServiceImpl-saveAppArticle-responseresult:{}",responseResult.getData() );
         return responseResult;
     }
 
@@ -148,13 +194,16 @@ public class WmAutoScanNewsServiceImpl implements WmAutoScanNewsService {
     @Autowired
     private FileStorageService fileStorageService;
 
+    @Autowired
+    private Tess4jClient tess4jClient;
+
     /**
      * 审核图片内容
      * @param images 内容图片和封面图片
      * @param wmNews 自媒体文章
      * @return 布尔值
      */
-    private boolean handleImagesScan(List<String> images, WmNews wmNews) {
+    private boolean handleImagesScan(List<String> images, WmNews wmNews) throws IOException {
         boolean flag = true;
         if (images == null || images.size() == 0) {
             return flag;
@@ -164,6 +213,26 @@ public class WmAutoScanNewsServiceImpl implements WmAutoScanNewsService {
         // 从MinIO下载图片
         for (String image : images) {
             byte[] bytes = fileStorageService.downLoadFile(image);
+
+            //从byte[]转换为butteredImage
+            ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+
+            //识别图片的文字
+            String result = null;
+            try {
+                BufferedImage imageFile = ImageIO.read(in);
+                result = tess4jClient.doOCR(imageFile);
+            } catch (TesseractException e) {
+                e.printStackTrace();
+            }
+
+            //审核是否包含自管理的敏感词
+            boolean isSensitive = handleSensitiveScan(result, wmNews);
+            if(!isSensitive){
+                return isSensitive;
+            }
+
+            //图片识别文字审核---end-----
         }
         try {
             Map map = greenImageScan.imageScan(imageList);
@@ -171,13 +240,13 @@ public class WmAutoScanNewsServiceImpl implements WmAutoScanNewsService {
                 //审核失败
                 if(map.get("suggestion").equals("block")){
                     flag = false;
-                    updateNewsStatus(wmNews, (short) 2, "当前图片中存在违规内容");
+                    updateNewsStatus(wmNews, WmNews.Status.FAIL.getCode(), "当前图片中存在违规内容");
                 }
 
                 //不确定信息  需要人工审核
                 if(map.get("suggestion").equals("review")){
                     flag = false;
-                    updateNewsStatus(wmNews, (short) 3, "当前图片中存在不确定内容");
+                    updateNewsStatus(wmNews, WmNews.Status.ADMIN_AUTH.getCode(), "当前图片中存在不确定内容");
                 }
             }
         } catch (Exception e) {

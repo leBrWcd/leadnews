@@ -8,6 +8,8 @@ import com.heima.wemedia.service.WmNewsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+
 /**
  * Description TODO
  *
@@ -38,7 +40,7 @@ public class WmNewsController {
     }
 
     @PostMapping("submit")
-    public ResponseResult submitNews(@RequestBody WmNewsDto dto) {
+    public ResponseResult submitNews(@RequestBody WmNewsDto dto) throws Exception {
         return wmNewsService.submitNews(dto);
     }
 

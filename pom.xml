@@ -19,6 +19,7 @@
         <module>leadnews-gateway</module>
         <module>leadnews-test</module>
         <module>leadnews-basic</module>
+        <module>tess4j-demo</module>
     </modules>
 
     <!-- 继承Spring boot工程 -->

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.heima.article.mapper.ApArticleConfigMapper;
 import com.heima.article.mapper.ArticleContentMapper;
 import com.heima.article.mapper.ArticleMapper;
+import com.heima.article.service.ArticleFreemarkerService;
 import com.heima.article.service.ArticleService;
 import com.heima.common.constants.ArticleConstants;
 import com.heima.model.article.dto.ArticleDto;
@@ -18,7 +19,9 @@ import org.apache.commons.lang.StringUtils;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
@@ -83,8 +86,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, ApArticle> im
         return null;
     }
 
+    @Autowired
+    private ArticleFreemarkerService articleFreemarkerService;
 
+    @Async
     @Override
+    @Transactional
     public ResponseResult saveArticle(ArticleDto dto) {
         // 0.校验参数
         if (dto == null) {
@@ -121,6 +128,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, ApArticle> im
             apArticleContent.setContent(dto.getContent());
             articleContentMapper.insert(apArticleContent);
         }
+
+        //异步调用 生成静态文件上传到minio中
+        articleFreemarkerService.buildArticleToMinIO(apArticle,dto.getContent());
 
         return ResponseResult.okResult(apArticle.getId());
     }

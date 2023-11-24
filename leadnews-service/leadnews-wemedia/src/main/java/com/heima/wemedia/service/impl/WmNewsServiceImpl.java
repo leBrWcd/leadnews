@@ -22,6 +22,7 @@ import com.heima.utils.thread.WmThreadLocalUtil;
 import com.heima.wemedia.mapper.WmMaterialMapper;
 import com.heima.wemedia.mapper.WmNewsMapper;
 import com.heima.wemedia.mapper.WmNewsMaterialMapper;
+import com.heima.wemedia.service.WmAutoScanNewsService;
 import com.heima.wemedia.service.WmNewsService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanUtilsBean;
@@ -30,6 +31,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -130,13 +132,16 @@ public class WmNewsServiceImpl extends ServiceImpl<WmNewsMapper, WmNews> impleme
         return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR);
     }
 
+    @Autowired
+    private WmAutoScanNewsService wmAutoScanNewsService;
+
     /**
      * 发布修改文章或保存为草稿
      * @param dto
      * @return
      */
     @Override
-    public ResponseResult submitNews(WmNewsDto dto) {
+    public ResponseResult submitNews(WmNewsDto dto) throws IOException {
 
         //0.条件判断
         if(dto == null || dto.getContent() == null){
@@ -173,6 +178,9 @@ public class WmNewsServiceImpl extends ServiceImpl<WmNewsMapper, WmNews> impleme
 
         //4.不是草稿，保存文章封面图片与素材的关系，如果当前布局是自动，需要匹配封面图片
         saveRelativeInfoForCover(dto,wmNews,materials);
+
+        // 发布成功后异步调用文章审核方法
+        wmAutoScanNewsService.autoScanNews(wmNews.getId());
 
         return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);
 

@@ -8,6 +8,8 @@ import com.heima.model.wemedia.dtos.WmNewsPageReqDto;
 import com.heima.model.wemedia.dtos.WmNewsUpDto;
 import com.heima.model.wemedia.pojos.WmNews;
 
+import java.io.IOException;
+
 /**
  * @author Lebr7Wcd
  */
@@ -39,5 +41,5 @@ public interface WmNewsService extends IService<WmNews> {
      * @param dto
      * @return
      */
-    ResponseResult submitNews(WmNewsDto dto);
+    ResponseResult submitNews(WmNewsDto dto) throws IOException;
 }

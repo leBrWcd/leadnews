@@ -1,5 +1,7 @@
 package com.heima.wemedia.service;
 
+import java.io.IOException;
+
 /**
  * Description 自媒体文章审核服务
  *
@@ -13,6 +15,6 @@ public interface WmAutoScanNewsService {
      * 审核文章
      * @param id 文章id
      */
-    void autoScanNews(Integer id);
+    void autoScanNews(Integer id) throws IOException;
 
 }
