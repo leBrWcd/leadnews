@@ -8,6 +8,8 @@ import org.springframework.boot.test.autoconfigure.data.jdbc.AutoConfigureDataJd
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
+
 import static org.junit.Assert.*;
 
 /**
@@ -23,7 +25,7 @@ public class WmAutoScanNewsServiceTest {
     private WmAutoScanNewsService wmAutoScanNewsService;
 
     @Test
-    public void autoScanNews() {
+    public void autoScanNews() throws IOException {
         wmAutoScanNewsService.autoScanNews(6232);
     }
 }
