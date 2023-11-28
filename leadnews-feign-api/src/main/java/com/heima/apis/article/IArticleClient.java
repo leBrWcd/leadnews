@@ -24,5 +24,5 @@ public interface IArticleClient {
      * @return
      */
     @PostMapping("/api/v1/article/save")
-    ResponseResult saveArticle(@RequestBody ArticleDto dto) ;
+    public ResponseResult saveArticle(@RequestBody ArticleDto dto) ;
 }

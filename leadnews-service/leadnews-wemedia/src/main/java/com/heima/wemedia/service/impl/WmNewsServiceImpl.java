@@ -1,3 +1,4 @@
+
 package com.heima.wemedia.service.impl;
 
 import com.alibaba.fastjson.JSON;
@@ -24,6 +25,7 @@ import com.heima.wemedia.mapper.WmNewsMapper;
 import com.heima.wemedia.mapper.WmNewsMaterialMapper;
 import com.heima.wemedia.service.WmAutoScanNewsService;
 import com.heima.wemedia.service.WmNewsService;
+import com.heima.wemedia.service.WmNewsTaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.lang.StringUtils;
@@ -135,6 +137,9 @@ public class WmNewsServiceImpl extends ServiceImpl<WmNewsMapper, WmNews> impleme
     @Autowired
     private WmAutoScanNewsService wmAutoScanNewsService;
 
+    @Autowired
+    private WmNewsTaskService wmNewsTaskService;
+
     /**
      * 发布修改文章或保存为草稿
      * @param dto
@@ -142,6 +147,7 @@ public class WmNewsServiceImpl extends ServiceImpl<WmNewsMapper, WmNews> impleme
      */
     @Override
     public ResponseResult submitNews(WmNewsDto dto) throws IOException {
+
 
         //0.条件判断
         if(dto == null || dto.getContent() == null){
@@ -179,7 +185,7 @@ public class WmNewsServiceImpl extends ServiceImpl<WmNewsMapper, WmNews> impleme
         //4.不是草稿，保存文章封面图片与素材的关系，如果当前布局是自动，需要匹配封面图片
         saveRelativeInfoForCover(dto,wmNews,materials);
 
-        // 发布成功后异步调用文章审核方法
+        //审核文章
         wmAutoScanNewsService.autoScanNews(wmNews.getId());
 
         return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);

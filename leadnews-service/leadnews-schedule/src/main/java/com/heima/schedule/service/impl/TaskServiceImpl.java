@@ -1,6 +1,7 @@
 package com.heima.schedule.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.heima.common.constants.ScheduleConstants;
 import com.heima.common.redis.CacheService;
 import com.heima.model.schedule.dtos.Task;
@@ -10,6 +11,7 @@ import com.heima.schedule.mapper.TaskinfoLogsMapper;
 import com.heima.schedule.mapper.TaskinfoMapper;
 import com.heima.schedule.service.TaskService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -17,8 +19,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -85,20 +89,50 @@ public class TaskServiceImpl implements TaskService {
      */
     @Scheduled(cron = "0 */1 * * * ?")
     public void refreshTask() {
-        log.info("定时任务【刷新未来任务为可消费任务】开始执行...(每分钟执行1次)");
-        // 1.获取所有的未来数据 scan ("future *)
-        Set<String> futureTasks = cacheService.scan(ScheduleConstants.FUTURE + "*");
+        // SETNX分布式锁
+        String isLock = cacheService.tryLock(ScheduleConstants.LOCK_NAME, ScheduleConstants.EXPIRE_TIME);
 
-        // 2.根据task的分值进行判断，小于等于当前时间，则刷新为可消费任务
-        futureTasks.forEach( e -> {
-            String topicKey = ScheduleConstants.TOPIC + e.split(ScheduleConstants.FUTURE)[1]; // topic_100_20
-            Set<String> tasks = cacheService.zRangeByScore(e, 0, System.currentTimeMillis());
-            if (!tasks.isEmpty()) {
-                //通过管道技术，将set中的数据放入到list
-                cacheService.refreshWithPipeline(e,topicKey,tasks);
-                log.info("成功的将" + e + "下的当前需要执行的任务数据刷新到" + topicKey + "下");
-            }
-        });
+        if (StringUtils.isNotEmpty(isLock)) {
+            log.info("定时任务【刷新未来任务为可消费任务】开始执行...(每分钟执行1次)");
+            // 1.获取所有的未来数据 scan ("future *)
+            Set<String> futureTasks = cacheService.scan(ScheduleConstants.FUTURE + "*");
+
+            // 2.根据task的分值进行判断，小于等于当前时间，则刷新为可消费任务
+            futureTasks.forEach( e -> {
+                String topicKey = ScheduleConstants.TOPIC + e.split(ScheduleConstants.FUTURE)[1]; // topic_100_20
+                Set<String> tasks = cacheService.zRangeByScore(e, 0, System.currentTimeMillis());
+                if (!tasks.isEmpty()) {
+                    //通过管道技术，将set中的数据放入到list
+                    cacheService.refreshWithPipeline(e,topicKey,tasks);
+                    log.info("成功的将" + e + "下的当前需要执行的任务数据刷新到" + topicKey + "下");
+                }
+            });
+        }
+    }
+
+    @PostConstruct //微服务启动即调用
+    @Scheduled(cron = "0 */5 * * * ?")
+    public void reloadData() {
+        // 1.清除缓存数据
+        Set<String> topicKeys = cacheService.scan(ScheduleConstants.TOPIC + "*");
+        Set<String> futureKeys = cacheService.scan(ScheduleConstants.FUTURE + "*");
+        cacheService.delete(topicKeys);
+        cacheService.delete(futureKeys);
+        // 2.查询小于未来5分钟的任务
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.MINUTE,5);
+        Date futureTime = calendar.getTime();
+        List<Taskinfo> taskinfos = taskinfoMapper.selectList(Wrappers.<Taskinfo>lambdaQuery().lt(Taskinfo::getExecuteTime, futureTime));
+        if (taskinfos != null && taskinfos.size() > 0 ) {
+            taskinfos.forEach(e -> {
+                Task task = new Task();
+                BeanUtils.copyProperties(e, task);
+                task.setExecuteTime(e.getExecuteTime().getTime());
+                addTaskToCache(task);
+            });
+        }
+
+        log.info("数据库中的任务同步到缓存...");
     }
 
 
@@ -119,8 +153,8 @@ public class TaskServiceImpl implements TaskService {
         } else  {
             cacheService.zRemove(ScheduleConstants.FUTURE,value);
         }
-
     }
+
 
     /**
      * 删除任务，更新日志状态

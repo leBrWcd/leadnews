@@ -48,6 +48,9 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
     //@Async
     @Override
     public void buildArticleToMinIO(ApArticle apArticle, String content) {
+
+        log.info("制作静态文章页面到MinIO...begin");
+
         //已知文章的id
         //4.1 获取文章内容
         if(StringUtils.isNotBlank(content)){
@@ -73,6 +76,8 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
             //4.4 修改ap_article表，保存static_url字段
             articleMapper.update(apArticle,Wrappers.<ApArticle>lambdaUpdate().eq(ApArticle::getId,apArticle.getId())
                     .set(ApArticle::getStaticUrl,path));
+
+            log.info("制作静态文章 "+ path + "页面到MinIO...end");
         }
     }
 

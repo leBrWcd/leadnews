@@ -101,37 +101,37 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, ApArticle> im
         ApArticle apArticle = new ApArticle();
         BeanUtils.copyProperties(dto,apArticle);
         // 1.前端是否传递文章id
-        if (dto.getId() == null) {
-            // 3.如果不存在，则为保存
-            // 3.1 保存文章、文章配置、文章内容
+
+        //2.判断是否存在id
+        if(dto.getId() == null){
+            //2.1 不存在id  保存  文章  文章配置  文章内容
+
+            //保存文章
             save(apArticle);
+
+            //保存配置
             ApArticleConfig apArticleConfig = new ApArticleConfig(apArticle.getId());
             apArticleConfigMapper.insert(apArticleConfig);
 
+            //保存 文章内容
             ApArticleContent apArticleContent = new ApArticleContent();
             apArticleContent.setArticleId(apArticle.getId());
             apArticleContent.setContent(dto.getContent());
             articleContentMapper.insert(apArticleContent);
-        }
-        // 2.如果存在，则为修改，update
-        updateById(apArticle);
-        // 2.1 修改文章内容
-        // 根据id查询文章内容
-        ApArticleContent apArticleContent = articleContentMapper.selectOne(
-                Wrappers.<ApArticleContent>lambdaQuery().eq(ApArticleContent::getArticleId, dto.getId()));
-        if (apArticleContent != null) {
+
+        }else {
+            //2.2 存在id   修改  文章  文章内容
+
+            //修改  文章
+            updateById(apArticle);
+
+            //修改文章内容
+            ApArticleContent apArticleContent = articleContentMapper.selectOne(Wrappers.<ApArticleContent>lambdaQuery().eq(ApArticleContent::getArticleId, dto.getId()));
             apArticleContent.setContent(dto.getContent());
             articleContentMapper.updateById(apArticleContent);
-        } else {
-            apArticleContent = new ApArticleContent();
-            apArticleContent.setArticleId(dto.getId());
-            apArticleContent.setContent(dto.getContent());
-            articleContentMapper.insert(apArticleContent);
         }
-
         //异步调用 生成静态文件上传到minio中
         articleFreemarkerService.buildArticleToMinIO(apArticle,dto.getContent());
-
         return ResponseResult.okResult(apArticle.getId());
     }
 }

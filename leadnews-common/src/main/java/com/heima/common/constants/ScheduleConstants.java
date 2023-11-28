@@ -12,4 +12,8 @@ public class ScheduleConstants {
     public static String FUTURE="future_";   //未来数据key前缀
 
     public static String TOPIC="topic_";     //当前数据key前缀
+
+    public static String LOCK_NAME = "FUTURE_TASK_SYNC";
+
+    public static final long EXPIRE_TIME = 1000 * 30;
 }
